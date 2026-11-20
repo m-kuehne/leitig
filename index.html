@@ -2,13 +2,14 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>Leitig</title>
 <meta name="theme-color" content="#0f1316">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Leitig">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -19,7 +20,7 @@
    PICTURE: live camera with crosshair + north-up radar of nearby lines.
    COLOUR/TYPE: asphalt black, signal yellow, white; Barlow Condensed + Barlow.
    LAYOUT: camera fills screen, status chips top, sheet with result + radar bottom. */
-:root{--bg:#0f1316;--panel:rgba(15,19,22,.92);--ink:#f4f4f0;--mute:#9aa3a8;--sig:#f5d000;--line:#2a3238;
+:root{color-scheme:dark;--bg:#0f1316;--panel:rgba(15,19,22,.92);--ink:#f4f4f0;--mute:#9aa3a8;--sig:#f5d000;--line:#2a3238;
 --v380:#ff4d3d;--v220:#ff9a1f;--v110:#f5d000;--vlow:#4fd1e8}
 *{box-sizing:border-box;min-width:0}
 [hidden]{display:none!important}
@@ -68,16 +69,17 @@ pre{white-space:pre-wrap;font-size:12px;color:var(--mute);background:#0b0e10;pad
 #cmp{position:fixed;inset:0;z-index:6;background:var(--bg);display:flex;flex-direction:column;align-items:center;padding:max(14px,env(safe-area-inset-top)) 14px 14px}
 .cmpHead{width:100%;max-width:560px;display:flex;justify-content:space-between;align-items:center;gap:10px}
 #bigHdg{font:700 52px/1 "Barlow Condensed"}#bigDir{font:700 24px "Barlow Condensed";color:var(--sig);margin-left:8px}
-#big{width:min(94vw,72vh);height:min(94vw,72vh);margin-top:6px;flex:none}
+#big{width:min(94vw,72vh);height:min(94vw,72vh);margin-top:6px;flex:none;touch-action:none;-webkit-user-select:none;user-select:none}
+.zoomHint{font-size:12px;color:var(--mute);margin-top:4px}
 .legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--mute);justify-content:center;margin-top:6px}
 .legend i{display:inline-block;width:16px;height:4px;border-radius:2px;margin-right:6px;vertical-align:middle}
 #radar{cursor:pointer}
 body.nocam video,body.nocam #cross,body.nocam #radar,body.nocam #cmpClose{display:none}
-body.nocam #cmp{z-index:auto;padding-top:calc(max(10px,env(safe-area-inset-top)) + 40px)}
-body.nocam #big{width:min(94vw,46vh);height:min(94vw,46vh)}
-body.nocam #bigHdg{font-size:40px}
+body.nocam #cmp{z-index:auto;padding-top:calc(var(--chipsH,64px) + max(10px,env(safe-area-inset-top)) + 6px)}
+body.nocam #big{width:min(90vw,40vh);height:min(90vw,40vh)}
+body.nocam #bigHdg{font-size:34px}body.nocam #bigDir{font-size:20px}body.nocam .legend{display:none}
 body.nocam .split{grid-template-columns:minmax(0,1fr)}
-body.nocam #sheet{max-height:46%}
+body.nocam #sheet{max-height:42%}
 #intro h1{font:700 44px/1.05 "Barlow Condensed";margin:0 0 10px;text-wrap:balance}
 #intro h1 span{display:inline-block;background:var(--sig);color:#111;padding:0 8px;transform:skew(-6deg)}
 #intro p{color:var(--mute);margin:0 0 18px}
@@ -90,7 +92,8 @@ body.nocam #sheet{max-height:46%}
 <div id="cmp" hidden>
   <div class="cmpHead"><div><b id="bigHdg">–</b><span id="bigDir"></span></div><button id="cmpClose" class="sec">Schliessen</button></div>
   <svg id="big" viewBox="-110 -110 220 220" aria-label="Kompass mit Leitungen, Blickrichtung oben"></svg>
-  <div class="legend"><span><i style="background:var(--v380)"></i>380 kV</span><span><i style="background:var(--v220)"></i>220 kV</span><span><i style="background:var(--v110)"></i>110–150 kV</span><span><i style="background:var(--vlow)"></i>unter 110 kV</span></div>
+  <div class="legend"><span><i style="background:var(--v380)"></i>380 kV</span><span><i style="background:var(--v220)"></i>220 kV</span><span><i style="background:var(--v110)"></i>110–150 kV</span><span><i style="background:var(--vlow)"></i>unter 110 kV</span><span>Gestrichelt: Erdkabel</span></div>
+  <div class="zoomHint">Mit zwei Fingern zoomen (bis 5 km)</div>
 </div>
 <video id="vid" playsinline muted autoplay></video>
 <svg id="cross" viewBox="0 0 64 64" fill="none" stroke="#f5d000" stroke-width="2.5">
@@ -116,8 +119,8 @@ body.nocam #sheet{max-height:46%}
   <div id="alt" class="alt"></div>
   <details>
     <summary>Einstellungen &amp; Debug</summary>
-    <label>Suchradius <select id="rad"><option value="1000">1 km</option><option value="2000" selected>2 km</option><option value="3000">3 km</option></select></label>
-    <label><input type="checkbox" id="cab"> Erdkabel einbeziehen</label>
+    <label>Suchradius <select id="rad"><option value="1000">1 km</option><option value="2000" selected>2 km</option><option value="3000">3 km</option><option value="5000">5 km</option></select></label>
+    <label><input type="checkbox" id="cab" checked> Erdkabel einbeziehen</label>
     <label>Kompass-Korrektur <input type="range" id="off" min="-30" max="30" value="0"> <span id="offV">0°</span></label>
     <label><input type="checkbox" id="man"> Manuell (ohne Sensoren)</label>
     <div id="manBox" hidden>
@@ -151,7 +154,7 @@ addEventListener('unhandledrejection',e=>showErr('Fehler: '+(e.reason&&e.reason.
 if(!window.isSecureContext)showErr('Seite läuft nicht über HTTPS – Kamera, GPS und Kompass sind gesperrt. Bitte über GitHub Pages öffnen.');
 {
 const $=id=>document.getElementById(id);
-const S={lat:null,lon:null,acc:null,hdg:null,pitch:null,src:'',raw:{},feats:[],fetchedAt:null,loading:false,last:null};
+const S={view:2000,fetchR:0,lat:null,lon:null,acc:null,hdg:null,pitch:null,src:'',raw:{},feats:[],fetchedAt:null,loading:false,last:null};
 const DECL=3; // magnetic declination CH ~ +3°
 const D2R=Math.PI/180,R2D=180/Math.PI;
 const norm=a=>((a%360)+360)%360, adiff=(a,b)=>Math.abs(((a-b+540)%360)-180);
@@ -216,27 +219,34 @@ function lv95(E,N){const y=(E-2600000)/1e6,x=(N-1200000)/1e6;
   const f=16.9023892+3.238272*x-0.270978*y*y-0.002528*x*x-0.0447*y*y*x-0.014*x*x*x;
   return[l*100/36,f*100/36]}
 const toLL=c=>c[0]>1e5?lv95(c[0],c[1]):c;
+const needR=()=>Math.max(+$('rad').value,Math.ceil(S.view/1000)*1000);
 async function fetchLines(){
   const p=pos();if(p.lat==null)return;
   S.loading=true;set('cApi','lädt…','warn');
-  const r=+$('rad').value,dLat=r/110540,dLon=r/(111320*Math.cos(p.lat*D2R));
+  const r=needR(),dLat=r/110540,dLon=r/(111320*Math.cos(p.lat*D2R));
   const bb=[p.lon-dLon,p.lat-dLat,p.lon+dLon,p.lat+dLat].map(v=>v.toFixed(5)).join(',');
   const url='https://api3.geo.admin.ch/rest/services/api/MapServer/identify?geometryType=esriGeometryEnvelope&geometry='+bb+
     '&sr=4326&layers=all:ch.bfe.elektrische-anlagen_ueber_36&tolerance=0&returnGeometry=true&geometryFormat=geojson&lang=de';
-  try{const res=await fetch(url);if(!res.ok)throw new Error('HTTP '+res.status);
-    const j=await res.json();
-    S.feats=(j.results||[]).filter(f=>f.geometry&&/LineString/.test(f.geometry.type)).map(f=>{
+  try{
+    const all=new Map();let off=0,pages=0;
+    while(pages<20){ // the API returns about 200 results per call; page with offset
+      const res=await fetch(url+'&offset='+off);if(!res.ok)throw new Error('HTTP '+res.status);
+      const rs=(await res.json()).results||[];pages++;
+      rs.forEach(f=>all.set(f.layerBodId+':'+f.id,f));
+      if(rs.length<150)break;off+=rs.length;set('cApi','lädt… '+all.size,'warn');
+    }
+    S.feats=[...all.values()].filter(f=>f.geometry&&/LineString/.test(f.geometry.type)).map(f=>{
       const pr=f.properties||f.attributes||{};
       const parts=f.geometry.type==='LineString'?[f.geometry.coordinates]:f.geometry.coordinates;
       return{id:f.id,p:pr,parts:parts.map(pt=>pt.map(toLL))}});
-    S.fetchedAt={...p};S.raw.api={total:(j.results||[]).length,lines:S.feats.length};
+    S.fetchedAt={...p};S.fetchR=r;S.raw.api={total:all.size,pages,lines:S.feats.length,radius:r};
     set('cApi',S.feats.length+' Leit.',S.feats.length?'ok':'warn');
   }catch(e){set('cApi','Fehler','bad');S.raw.api=String(e)}
-  S.loading=false;ready();
+  S.loading=false;ready();maybeFetch();
 }
 function maybeFetch(){
   if(S.loading)return;const p=pos();if(p.lat==null)return;
-  if(!S.fetchedAt||dist(S.fetchedAt,p)>300)fetchLines();
+  if(!S.fetchedAt||dist(S.fetchedAt,p)>300||needR()>S.fetchR)fetchLines();
 }
 function dist(a,b){const e=(b.lon-a.lon)*111320*Math.cos(a.lat*D2R),n=(b.lat-a.lat)*110540;return Math.hypot(e,n)}
 
@@ -328,9 +338,9 @@ function drawBig(){
   const w=20*D2R;
   o+=`<path d="M0 0L${-Math.sin(w)*R} ${-Math.cos(w)*R}A${R} ${R} 0 0 1 ${Math.sin(w)*R} ${-Math.cos(w)*R}Z" fill="rgba(245,208,0,.12)"/>`;
   if(p.lat!=null){
-    const r=+$('rad').value,k=R/r,cab=$('cab').checked,sm=S.last&&S.last[S.sel||0],selId=sm&&(sm.f.p.fid||sm.f.id);
+    const r=S.view,k=R/r,cab=$('cab').checked,sm=S.last&&S.last[S.sel||0],selId=sm&&(sm.f.p.fid||sm.f.id);
     const scr=l=>[(l[0]*c-l[1]*s)*k,-(l[0]*s+l[1]*c)*k];
-    o+=`<circle r="${R/2}" fill="none" stroke="#1d2428"/><text x="2" y="${-R/2-2}" font-size="5" fill="#6d777d">${r/2>=1000?r/2000+' km':r/2+' m'}</text>`;
+    o+=`<circle r="${R/2}" fill="none" stroke="#1d2428"/><text x="2" y="${-R/2-2}" font-size="5" fill="#6d777d">${r/2>=1000?+(r/2000).toFixed(1)+' km':Math.round(r/2)+' m'}</text><text x="2" y="${-R+12}" font-size="5" fill="#6d777d">${+(r/1000).toFixed(1)} km</text>`;
     const labs=[];let lines='';
     for(const f of S.feats){
       const isC=/kabel/i.test(f.p.leitungtyp||'');if(isC&&!cab)continue;
@@ -374,6 +384,18 @@ $('bStart').onclick=()=>start(true);
 $('bNoCam').onclick=()=>start(false);
 $('radar').onclick=()=>{$('cmp').hidden=false;drawBig()};
 $('cmpClose').onclick=()=>{$('cmp').hidden=true};
+{ // pinch / wheel zoom on the big compass, 250 m to 5 km
+  const big=$('big');let d0=0,v0=0,zt;
+  const td=e=>Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+  const setView=v=>{S.view=Math.max(250,Math.min(5000,v));drawBig();clearTimeout(zt);zt=setTimeout(maybeFetch,400)};
+  big.addEventListener('touchstart',e=>{if(e.touches.length===2){d0=td(e);v0=S.view;e.preventDefault()}},{passive:false});
+  big.addEventListener('touchmove',e=>{if(e.touches.length===2&&d0){e.preventDefault();setView(v0*d0/td(e))}},{passive:false});
+  big.addEventListener('touchend',()=>{d0=0});
+  ['gesturestart','gesturechange'].forEach(t=>big.addEventListener(t,e=>e.preventDefault()));
+  big.addEventListener('wheel',e=>{e.preventDefault();setView(S.view*Math.exp(e.deltaY*0.002))},{passive:false});
+}
+$('rad').addEventListener('change',()=>{S.view=+$('rad').value});
+new ResizeObserver(()=>document.documentElement.style.setProperty('--chipsH',$('chips').offsetHeight+'px')).observe($('chips'));
 $('bId').onclick=identify;
 $('alt').onclick=pick;
 $('alt').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(e)}};
