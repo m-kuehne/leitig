@@ -3,7 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Leitung erkennen</title>
+<title>Leitig</title>
+<meta name="theme-color" content="#0f1316">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Leitig">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -52,8 +60,24 @@ label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:14px}
 input[type=number],select{font:16px Barlow;background:#1b2226;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px;width:9em}
 input[type=range]{flex:1}
 pre{white-space:pre-wrap;font-size:12px;color:var(--mute);background:#0b0e10;padding:8px;border-radius:6px;overflow-x:auto;max-height:200px}
-#intro{position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:var(--bg)}
-#intro .box{max-width:420px}
+#intro{position:fixed;inset:0;display:flex;flex-direction:column;overflow-y:auto;padding:max(24px,env(safe-area-inset-top)) 20px max(24px,env(safe-area-inset-bottom));background:var(--bg)}
+#intro .box{max-width:440px;margin:auto}
+.req{background:#151b1f;border:1px solid var(--line);border-left:4px solid var(--sig);border-radius:8px;padding:10px 12px 2px;margin:0 0 16px;font-size:14px;color:var(--ink)}
+.req ul{margin:6px 0;padding-left:18px}.req li{margin-bottom:7px}.req li span{color:var(--mute)}
+.btns{display:grid;gap:8px}
+#cmp{position:fixed;inset:0;z-index:6;background:var(--bg);display:flex;flex-direction:column;align-items:center;padding:max(14px,env(safe-area-inset-top)) 14px 14px}
+.cmpHead{width:100%;max-width:560px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+#bigHdg{font:700 52px/1 "Barlow Condensed"}#bigDir{font:700 24px "Barlow Condensed";color:var(--sig);margin-left:8px}
+#big{width:min(94vw,72vh);height:min(94vw,72vh);margin-top:6px;flex:none}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--mute);justify-content:center;margin-top:6px}
+.legend i{display:inline-block;width:16px;height:4px;border-radius:2px;margin-right:6px;vertical-align:middle}
+#radar{cursor:pointer}
+body.nocam video,body.nocam #cross,body.nocam #radar,body.nocam #cmpClose{display:none}
+body.nocam #cmp{z-index:auto;padding-top:calc(max(10px,env(safe-area-inset-top)) + 40px)}
+body.nocam #big{width:min(94vw,46vh);height:min(94vw,46vh)}
+body.nocam #bigHdg{font-size:40px}
+body.nocam .split{grid-template-columns:minmax(0,1fr)}
+body.nocam #sheet{max-height:46%}
 #intro h1{font:700 44px/1.05 "Barlow Condensed";margin:0 0 10px;text-wrap:balance}
 #intro h1 span{display:inline-block;background:var(--sig);color:#111;padding:0 8px;transform:skew(-6deg)}
 #intro p{color:var(--mute);margin:0 0 18px}
@@ -63,6 +87,11 @@ pre{white-space:pre-wrap;font-size:12px;color:var(--mute);background:#0b0e10;pad
 </style>
 </head>
 <body>
+<div id="cmp" hidden>
+  <div class="cmpHead"><div><b id="bigHdg">–</b><span id="bigDir"></span></div><button id="cmpClose" class="sec">Schliessen</button></div>
+  <svg id="big" viewBox="-110 -110 220 220" aria-label="Kompass mit Leitungen, Blickrichtung oben"></svg>
+  <div class="legend"><span><i style="background:var(--v380)"></i>380 kV</span><span><i style="background:var(--v220)"></i>220 kV</span><span><i style="background:var(--v110)"></i>110–150 kV</span><span><i style="background:var(--vlow)"></i>unter 110 kV</span></div>
+</div>
 <video id="vid" playsinline muted autoplay></video>
 <svg id="cross" viewBox="0 0 64 64" fill="none" stroke="#f5d000" stroke-width="2.5">
   <circle cx="32" cy="32" r="14"/><path d="M32 2v16M32 46v16M2 32h16M46 32h16"/>
@@ -102,8 +131,15 @@ pre{white-space:pre-wrap;font-size:12px;color:var(--mute);background:#0b0e10;pad
 
 <div id="intro"><div class="box">
   <h1>Welche <span>Leitung</span> ist das?</h1>
-  <p>Richte die Kamera auf eine Hochspannungsleitung. Die App vergleicht GPS und Kompass mit den BFE-Daten (über 36 kV) und zeigt Trassee, Betreiber und Spannung.</p>
-  <button id="bStart" style="width:100%">Kamera, GPS &amp; Kompass starten</button>
+  <p>Richte das Handy auf eine Hochspannungsleitung. Leitig vergleicht GPS und Kompass mit den BFE-Daten und zeigt Trassee, Betreiber und Spannung.</p>
+  <div class="req"><b>Bevor du startest</b><ul>
+    <li><b>Ortungsdienste an.</b> <span>iPhone: Einstellungen → Datenschutz &amp; Sicherheit → Ortungsdienste → Safari-Websites → «Beim Verwenden» und «Genauer Standort» an. Android: Standort für Chrome erlauben.</span></li>
+    <li><b>Bewegung &amp; Ausrichtung erlauben</b>, wenn der Browser fragt. <span>Ohne das gibt es keinen Kompass.</span></li>
+    <li><b>Kamera ist optional.</b> <span>Ohne Kamera zeigt Leitig einen grossen Kompass mit den Leitungen.</span></li>
+    <li><b>Kompass kalibrieren:</b> <span>Handy einige Male in einer Acht bewegen, Abstand zu Autos, Masten und Stahl halten.</span></li>
+    <li><b>Nur Schweiz, nur über 36 kV,</b> <span>Internet nötig. Einige Betreiber fehlen noch in den Daten.</span></li>
+  </ul></div>
+  <div class="btns"><button id="bStart">Mit Kamera starten</button><button id="bNoCam" class="sec">Ohne Kamera (Kompass)</button></div>
   <p style="font-size:13px;margin-top:14px">Daten: Bundesamt für Energie BFE, «Elektrische Anlagen mit einer Nennspannung von über 36 kV», via geo.admin.ch. Nicht vollständig, Angaben ohne Gewähr.</p>
 </div></div>
 
@@ -126,7 +162,12 @@ function set(id,txt,cls){const e=$(id);e.textContent=txt;e.className=cls||''}
 async function startCam(){
   try{const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
     $('vid').srcObject=st;set('cCam','an','ok')}
-  catch(e){set('cCam','nein','bad');S.raw.cam=String(e)}
+  catch(e){set('cCam','nein','bad');S.raw.cam=String(e);setNoCam()}
+}
+function setNoCam(){
+  document.body.classList.add('nocam');$('cmp').hidden=false;
+  if($('cCam').textContent!=='nein')set('cCam','aus','');
+  if(!S.last)$('best').innerHTML='<div class="empty">Handy in Richtung der Leitung halten (flach oder hochkant), dann «Leitung bestimmen».</div>';
 }
 function startGps(){
   if(!navigator.geolocation){set('cGps','fehlt','bad');return}
@@ -144,7 +185,9 @@ function onOri(ev){
   S.pitch=Math.asin(Math.max(-1,Math.min(1,vz)))*R2D;
   let h=null;
   if(typeof ev.webkitCompassHeading==='number'){h=ev.webkitCompassHeading;S.src='iOS compass'}
-  else if(ev.absolute||ev.type==='deviceorientationabsolute'){h=norm(Math.atan2(vx,vy)*R2D);S.src='absolute'}
+  else if(ev.absolute||ev.type==='deviceorientationabsolute'){
+    // flat phone: use the direction of the phone's top edge, upright: the back camera
+    h=Math.abs(S.pitch)>55?norm(-(ev.alpha||0)):norm(Math.atan2(vx,vy)*R2D);S.src='absolute'}
   else{S.src='relativ (kein Kompass)'}
   S.raw.ori={alpha:ev.alpha,beta:ev.beta,gamma:ev.gamma,webkit:ev.webkitCompassHeading,abs:ev.absolute};
   if(h==null){set('cHdg','relativ','bad');return}
@@ -163,7 +206,7 @@ async function startOri(){
   else addEventListener('deviceorientation',onOri);
 }
 const manual=()=>$('man').checked;
-const heading=()=>manual()?+$('mHdg').value:norm(S.hdg+ +$('off').value);
+const heading=()=>manual()?+$('mHdg').value:S.hdg==null?null:norm(S.hdg+ +$('off').value);
 const pos=()=>manual()?{lat:+$('mLat').value,lon:+$('mLon').value}:{lat:S.lat,lon:S.lon};
 function ready(){const p=pos();$('bId').disabled=!(p.lat!=null&&(manual()||S.hdg!=null)&&S.feats.length)}
 
@@ -199,7 +242,7 @@ function dist(a,b){const e=(b.lon-a.lon)*111320*Math.cos(a.lat*D2R),n=(b.lat-a.l
 
 /* ---------- matching ---------- */
 const kv=s=>{const m=/(\d+)\s*kV/i.exec(s||'');return m?+m[1]:null};
-const vcol=v=>v>=380?'var(--v380)':v>=220?'var(--v220)':v>=100?'var(--v110)':'var(--vlow)';
+const vcol=v=>v>=380?'#ff4d3d':v>=220?'#ff9a1f':v>=100?'#f5d000':'#4fd1e8';
 const cross=(a,b)=>a[0]*b[1]-a[1]*b[0];
 function local(p,c){return[(c[0]-p.lon)*111320*Math.cos(p.lat*D2R),(c[1]-p.lat)*110540]}
 function identify(){
@@ -275,11 +318,62 @@ function drawRadar(){
   $('radar').innerHTML=s;
 }
 
+/* ---------- big compass ---------- */
+const DIRS=['N','NO','O','SO','S','SW','W','NW'];
+function drawBig(){
+  const p=pos(),hh=heading(),h=hh==null?0:hh,R=100;
+  $('bigHdg').textContent=hh==null?'–':Math.round(hh)+'°';$('bigDir').textContent=hh==null?'':DIRS[Math.round(hh/45)%8];
+  const c=Math.cos(h*D2R),s=Math.sin(h*D2R);
+  let o=`<defs><clipPath id="bc"><circle r="${R}"/></clipPath></defs><circle r="${R}" fill="#0b0e10" stroke="#2a3238"/>`;
+  const w=20*D2R;
+  o+=`<path d="M0 0L${-Math.sin(w)*R} ${-Math.cos(w)*R}A${R} ${R} 0 0 1 ${Math.sin(w)*R} ${-Math.cos(w)*R}Z" fill="rgba(245,208,0,.12)"/>`;
+  if(p.lat!=null){
+    const r=+$('rad').value,k=R/r,cab=$('cab').checked,sm=S.last&&S.last[S.sel||0],selId=sm&&(sm.f.p.fid||sm.f.id);
+    const scr=l=>[(l[0]*c-l[1]*s)*k,-(l[0]*s+l[1]*c)*k];
+    o+=`<circle r="${R/2}" fill="none" stroke="#1d2428"/><text x="2" y="${-R/2-2}" font-size="5" fill="#6d777d">${r/2>=1000?r/2000+' km':r/2+' m'}</text>`;
+    const labs=[];let lines='';
+    for(const f of S.feats){
+      const isC=/kabel/i.test(f.p.leitungtyp||'');if(isC&&!cab)continue;
+      const id=f.p.fid||f.id,hi=id===selId,v=kv(f.p.spannung)||kv(f.p.spannungandere)||0;let near=null;
+      for(const part of f.parts){
+        const L=part.map(q=>local(p,q));
+        lines+=`<polyline points="${L.map(l=>scr(l).map(x=>x.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="${vcol(v)}" stroke-width="${hi?3.2:1.3}" opacity="${hi?1:.7}"${isC?' stroke-dasharray="3 3"':''}/>`;
+        for(let i=0;i<L.length-1;i++){const m=[(L[i][0]+L[i+1][0])/2,(L[i][1]+L[i+1][1])/2],d=Math.hypot(...m);
+          if(d<r*.85&&d>r*.08&&(!near||d<near.d))near={d,xy:scr(m)}}
+      }
+      if(near)labs.push({...near,hi,v,name:f.p.bezeichnung||'',col:vcol(v)});
+    }
+    o+=`<g clip-path="url(#bc)">${lines}</g>`;
+    const seen=new Set(),placed=[];
+    labs.sort((a,b)=>(b.hi-a.hi)||a.d-b.d);
+    for(const l of labs){
+      const key=l.v+'|'+l.name;if(seen.has(key))continue;
+      let [x,y]=l.xy;x=Math.max(-72,Math.min(72,x));
+      if(placed.some(q=>Math.abs(q[0]-x)<44&&Math.abs(q[1]-y)<13))continue;
+      seen.add(key);placed.push([x,y]);if(placed.length>8)break;
+      const nm=l.name.length>24?l.name.slice(0,23)+'…':l.name;
+      o+=`<g font-family="Barlow" text-anchor="middle" stroke="#0b0e10" stroke-width="2.4" paint-order="stroke" stroke-linejoin="round">
+        <text x="${x.toFixed(1)}" y="${(y-1).toFixed(1)}" font-size="${l.hi?7.5:6.5}" font-weight="700" fill="${l.col}">${l.v?l.v+' kV':'?'}</text>
+        <text x="${x.toFixed(1)}" y="${(y+5.5).toFixed(1)}" font-size="4.6" fill="${l.hi?'#fff':'#c3cacd'}">${esc(nm)}</text></g>`;
+    }
+  }else o+=`<text y="3" text-anchor="middle" font-size="7" fill="#9aa3a8">Warte auf GPS …</text>`;
+  for(let b=0;b<360;b+=10){const a=(b-h)*D2R,l=b%30?4:8,x1=Math.sin(a)*R,y1=-Math.cos(a)*R,x2=Math.sin(a)*(R-l),y2=-Math.cos(a)*(R-l);
+    o+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${b?'#5b666c':'#ff4d3d'}" stroke-width="${b%30?.6:1.2}"/>`}
+  ['N','O','S','W'].forEach((t,i)=>{const a=(i*90-h)*D2R;
+    o+=`<text x="${(Math.sin(a)*(R-15)).toFixed(1)}" y="${(-Math.cos(a)*(R-15)+3.5).toFixed(1)}" text-anchor="middle" font-family="Barlow Condensed" font-weight="700" font-size="10" fill="${i?'#f4f4f0':'#ff4d3d'}">${t}</text>`});
+  o+=`<path d="M0 -101l-5 -8h10z" fill="#f5d000"/><path d="M0 -6l5 10l-5 -3l-5 3z" fill="#fff"/>`;
+  $('big').innerHTML=o;
+}
+
 /* ---------- wiring ---------- */
-$('bStart').onclick=()=>{
+function start(cam){
   $('intro').hidden=true;
-  if(!navigator.mediaDevices||!navigator.geolocation)showErr('Browser blockiert Sensoren (In-App-Vorschau?). Seite in Safari/Chrome über HTTPS öffnen.');
-  startOri();startCam();startGps()};
+  if(!navigator.geolocation)showErr('Browser blockiert Sensoren (In-App-Vorschau?). Seite in Safari/Chrome über HTTPS öffnen.');
+  startOri();startGps();if(cam)startCam();else setNoCam()}
+$('bStart').onclick=()=>start(true);
+$('bNoCam').onclick=()=>start(false);
+$('radar').onclick=()=>{$('cmp').hidden=false;drawBig()};
+$('cmpClose').onclick=()=>{$('cmp').hidden=true};
 $('bId').onclick=identify;
 $('alt').onclick=pick;
 $('alt').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(e)}};
@@ -289,7 +383,8 @@ $('off').oninput=e=>$('offV').textContent=e.target.value+'°';
 $('man').onchange=e=>{$('manBox').hidden=!e.target.checked;S.fetchedAt=null;fetchLines()};
 $('mHdg').oninput=e=>{$('mHdgV').textContent=e.target.value+'°';ready()};
 ['mLat','mLon'].forEach(id=>$(id).onchange=()=>{S.fetchedAt=null;fetchLines()});
-let t=0;(function loop(ts){
+let t=0,tb=0;(function loop(ts){
+  if(!$('cmp').hidden&&ts-tb>120){tb=ts;drawBig()}
   if(ts-t>250){t=ts;drawRadar();
     $('dbg').textContent=JSON.stringify({pos:pos(),acc:S.acc,heading:heading(),pitch:S.pitch,source:S.src,decl:DECL,raw:S.raw,
       best:(S.last||[]).map(m=>({fid:m.f.p.fid,off:+m.off.toFixed(1),dist:Math.round(m.dm)}))},null,1)}

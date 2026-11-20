@@ -1,6 +1,8 @@
-# Power line identifier (CH)
+# Leitig – Swiss power line identifier
 
-Point your phone camera at a Swiss high-voltage line and see its route, operator and voltage.
+Point your phone at a Swiss high-voltage line and see its route (Trassee), operator and voltage.
+There are two modes: a camera viewfinder, or a large compass with labelled lines when you don't use the camera.
+You can install it to your home screen: it includes a web app manifest and icons in `icons/`.
 It uses GPS and the compass heading, matched against the Swiss Federal Office of Energy (BFE) dataset
 "Elektrische Anlagen mit einer Nennspannung von über 36 kV" from api3.geo.admin.ch.
 
