@@ -66,7 +66,7 @@ Desktop browsers have no compass. Use *Einstellungen & Debug → Manuell*. To te
 ## Known limitations
 
 - Phone magnetometers are typically off by 5–15°, and more near vehicles, pylons or reinforced concrete.
-- Portrait orientation only. Landscape and `screen.orientation` aren't handled.
+- Portrait only. The app requests `screen.orientation.lock('portrait')` where supported (installed web apps on Android). iOS has no lock API, so a "rotate" overlay covers the app in landscape.
 - Online only. Nothing is cached.
 - Data accuracy depends on what the operators delivered to the BFE.
 

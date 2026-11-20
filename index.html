@@ -11,8 +11,11 @@
 <meta name="apple-mobile-web-app-title" content="Leitig">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icons/icon-180.png">
-<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="icon" type="image/png" sizes="96x96" href="icons/icon-96.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -33,7 +36,9 @@ video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;background:
 .chip b{font-family:"Barlow Condensed";font-size:15px;letter-spacing:.02em}
 .ok{color:#7ee08a}.bad{color:#ff7a6b}.warn{color:var(--sig)}
 #sheet{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:3px solid var(--sig);
-padding:14px max(14px,env(safe-area-inset-left)) max(14px,env(safe-area-inset-bottom));max-height:60%;overflow-y:auto}
+padding:14px max(14px,env(safe-area-inset-left)) max(14px,env(safe-area-inset-bottom));max-height:var(--sheetMax,40vh);overflow-y:auto;overscroll-behavior:contain;transition:max-height .25s ease}
+#sheet.exp{max-height:78vh}
+@media(prefers-reduced-motion:reduce){#sheet{transition:none}}
 .row{display:flex;gap:10px;align-items:stretch}
 button{font:600 17px Barlow;min-height:48px;border-radius:8px;border:0;padding:0 18px;background:var(--sig);color:#111;cursor:pointer}
 button.sec{background:#273036;color:var(--ink)}
@@ -80,12 +85,16 @@ body.nocam #cmp{z-index:auto;padding-top:calc(var(--chipsH,64px) + max(10px,env(
 body.nocam #big{width:min(90vw,40vh);height:min(90vw,40vh)}
 body.nocam #bigHdg{font-size:34px}body.nocam #bigDir{font-size:20px}body.nocam .legend{display:none}
 body.nocam .split{grid-template-columns:minmax(0,1fr)}
-body.nocam #sheet{max-height:42%}
+
 #intro h1{font:700 44px/1.05 "Barlow Condensed";margin:0 0 10px;text-wrap:balance}
 #intro h1 span{display:inline-block;background:var(--sig);color:#111;padding:0 8px;transform:skew(-6deg)}
 #intro p{color:var(--mute);margin:0 0 18px}
+.priv{font-size:13px;color:var(--mute);margin-top:-6px}.priv p{margin:6px 0 0!important}.priv b{color:var(--ink)}
 @media(max-width:480px){.split{grid-template-columns:minmax(0,1fr) 112px}#radar{width:112px;height:112px}}
 @media(max-width:340px){.split{grid-template-columns:minmax(0,1fr)}#radar{margin:auto}}
+#rot{display:none;position:fixed;inset:0;z-index:20;background:var(--bg);place-items:center;text-align:center;padding:24px}
+#rot b{display:block;font:700 30px/1.1 "Barlow Condensed";margin-top:12px}#rot p{color:var(--mute);margin:6px 0 0}
+@media (orientation:landscape) and (max-height:520px){#rot{display:grid}}
 @media(prefers-reduced-motion:no-preference){#cross circle{animation:p 2s ease-in-out infinite}@keyframes p{50%{opacity:.5}}}
 </style>
 </head>
@@ -145,8 +154,16 @@ body.nocam #sheet{max-height:42%}
   </ul></div>
   <div class="btns"><button id="bStart">Mit Kamera starten</button><button id="bNoCam" class="sec">Ohne Kamera (Kompass)</button></div>
   <p style="font-size:13px;margin-top:14px">Daten: Bundesamt für Energie BFE, «Elektrische Anlagen mit einer Nennspannung von über 36 kV», via geo.admin.ch. Nicht vollständig, Angaben ohne Gewähr.</p>
+  <details class="priv"><summary>Datenschutz</summary>
+    <p>Leitig hat keinen eigenen Server und speichert nichts über dich.</p>
+    <p><b>Standort:</b> Um die Leitungen zu laden, wird ein Ausschnitt rund um deinen ungefähren Standort an die Geodaten-Schnittstelle des Bundes (swisstopo, api3.geo.admin.ch) gesendet.</p>
+    <p><b>Kamera und Kompass</b> werden nur im Browser verwendet. Es werden keine Bilder übertragen oder gespeichert.</p>
+    <p><b>Besucherstatistik:</b> Seitenaufrufe werden anonym mit Cloudflare Web Analytics gezählt, ohne Cookies und ohne Profil. Die Seite wird über GitHub Pages ausgeliefert. GitHub protokolliert dabei technische Daten wie die IP-Adresse.</p>
+  </details>
 </div></div>
 
+<div id="rot"><div><svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#f5d000" stroke-width="3" stroke-linejoin="round"><rect x="20" y="6" width="24" height="44" rx="4"/><path d="M28 44h8"/><path d="M50 30a20 20 0 0 1-12 20" stroke-linecap="round"/><path d="M44 48l-6 2 2-6" stroke-linecap="round"/></svg>
+<b>Bitte hochkant halten</b><p>Leitig funktioniert nur im Hochformat.</p></div></div>
 <div id="err" hidden></div>
 <script>
 function showErr(m){const e=document.getElementById('err');e.hidden=false;e.textContent+=(e.textContent?'\n':'')+m}
@@ -169,7 +186,7 @@ async function startCam(){
   catch(e){set('cCam','nein','bad');S.raw.cam=String(e);setNoCam()}
 }
 function setNoCam(){
-  document.body.classList.add('nocam');$('cmp').hidden=false;
+  document.body.classList.add('nocam');$('cmp').hidden=false;requestAnimationFrame(fitSheet);
   if($('cCam').textContent!=='nein')set('cCam','aus','');
   if(!S.last)$('best').innerHTML='<div class="empty">Handy in Richtung der Leitung halten (flach oder hochkant), dann «Leitung bestimmen».</div>';
 }
@@ -274,7 +291,7 @@ function identify(){
       if(!cur||score<cur.score)best.set(key,{f,off,dm,score,ll:[p.lon+pe[0]/(111320*Math.cos(p.lat*D2R)),p.lat+pe[1]/110540]});
     }
   }
-  S.last=[...best.values()].sort((a,b)=>a.score-b.score).slice(0,5);S.sel=0;
+  S.last=[...best.values()].sort((a,b)=>a.score-b.score).slice(0,5);S.sel=0;$('sheet').scrollTop=0;$('sheet').classList.remove('exp');
   render();drawRadar();
 }
 const OPS=[[/swissgrid/i,'https://www.swissgrid.ch'],[/axpo/i,'https://www.axpo.com'],[/\bbkw\b/i,'https://www.bkw.ch'],
@@ -376,11 +393,22 @@ function drawBig(){
   $('big').innerHTML=o;
 }
 
+/* ---------- sheet sizing: compact at top, expands while scrolling ---------- */
+function fitSheet(){
+  const ref=document.body.classList.contains('nocam')?$('big'):$('cross');
+  const top=ref.getBoundingClientRect().bottom+10;
+  document.documentElement.style.setProperty('--sheetMax',Math.max(150,innerHeight-top)+'px');
+}
+$('sheet').addEventListener('scroll',e=>{const sh=e.currentTarget;
+  if(sh.scrollTop>12)sh.classList.add('exp');else if(sh.scrollTop<=0)sh.classList.remove('exp')},{passive:true});
+addEventListener('resize',fitSheet);fitSheet();
+
 /* ---------- wiring ---------- */
 function start(cam){
   $('intro').hidden=true;
   if(!navigator.geolocation)showErr('Browser blockiert Sensoren (In-App-Vorschau?). Seite in Safari/Chrome über HTTPS öffnen.');
-  startOri();startGps();if(cam)startCam();else setNoCam()}
+  try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('portrait').catch(()=>{})}catch(e){}
+  startOri();startGps();if(cam)startCam();else setNoCam();fitSheet()}
 $('bStart').onclick=()=>start(true);
 $('bNoCam').onclick=()=>start(false);
 $('radar').onclick=()=>{$('cmp').hidden=false;drawBig()};
@@ -396,7 +424,7 @@ $('cmpClose').onclick=()=>{$('cmp').hidden=true};
   big.addEventListener('wheel',e=>{e.preventDefault();setView(S.view*Math.exp(e.deltaY*0.002))},{passive:false});
 }
 $('rad').addEventListener('change',()=>{S.view=+$('rad').value});
-new ResizeObserver(()=>document.documentElement.style.setProperty('--chipsH',$('chips').offsetHeight+'px')).observe($('chips'));
+new ResizeObserver(()=>{document.documentElement.style.setProperty('--chipsH',$('chips').offsetHeight+'px');requestAnimationFrame(fitSheet)}).observe($('chips'));
 $('bId').onclick=identify;
 $('alt').onclick=pick;
 $('alt').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(e)}};
@@ -414,5 +442,6 @@ let t=0,tb=0;(function loop(ts){
   requestAnimationFrame(loop)})(0);
 }
 </script>
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "74c0adf6d63b4f89aa7f1b8703c3b154"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
