@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Leitung erkennen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: field tool, terse, like a lineman's sign. IDEA: hazard placard over a viewfinder.
+   PICTURE: live camera with crosshair + north-up radar of nearby lines.
+   COLOUR/TYPE: asphalt black, signal yellow, white; Barlow Condensed + Barlow.
+   LAYOUT: camera fills screen, status chips top, sheet with result + radar bottom. */
+:root{--bg:#0f1316;--panel:rgba(15,19,22,.92);--ink:#f4f4f0;--mute:#9aa3a8;--sig:#f5d000;--line:#2a3238;
+--v380:#ff4d3d;--v220:#ff9a1f;--v110:#f5d000;--vlow:#4fd1e8}
+*{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
+#err{position:fixed;left:10px;right:10px;top:50%;background:#3a1512;color:#ffd6d0;border:1px solid #ff7a6b;border-radius:8px;padding:10px;font-size:14px;z-index:9}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.45 Barlow,system-ui,sans-serif;overflow:hidden}
+video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+#cross{position:fixed;left:50%;top:38%;width:64px;height:64px;transform:translate(-50%,-50%);pointer-events:none}
+#chips{position:fixed;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:13px;white-space:nowrap}
+.chip b{font-family:"Barlow Condensed";font-size:15px;letter-spacing:.02em}
+.ok{color:#7ee08a}.bad{color:#ff7a6b}.warn{color:var(--sig)}
+#sheet{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:3px solid var(--sig);
+padding:14px max(14px,env(safe-area-inset-left)) max(14px,env(safe-area-inset-bottom));max-height:60%;overflow-y:auto}
+.row{display:flex;gap:10px;align-items:stretch}
+button{font:600 17px Barlow;min-height:48px;border-radius:8px;border:0;padding:0 18px;background:var(--sig);color:#111;cursor:pointer}
+button.sec{background:#273036;color:var(--ink)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #fff;outline-offset:2px}
+button:disabled{opacity:.45}
+#best{margin-top:12px}
+.card{border:1px solid var(--line);border-left:6px solid var(--c,var(--sig));border-radius:8px;padding:10px 12px;margin-bottom:8px;background:#151b1f}
+.card h2{margin:0;font:700 28px/1.05 "Barlow Condensed"}
+.card .t{font-size:15px;margin-top:2px;overflow-wrap:anywhere}
+.meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--mute);margin-top:6px}
+.meta span{white-space:nowrap}
+.alt .card{padding:8px 10px}.alt .card h2{font-size:20px}
+.empty{color:var(--mute);font-size:15px;padding:6px 0}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:12px;margin-top:10px}
+#radar{width:150px;height:150px;border-radius:50%;background:#0b0e10;border:1px solid var(--line)}
+details{margin-top:12px;font-size:14px}
+summary{cursor:pointer;color:var(--mute);min-height:32px}
+label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:14px}
+input[type=number],select{font:16px Barlow;background:#1b2226;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px;width:9em}
+input[type=range]{flex:1}
+pre{white-space:pre-wrap;font-size:12px;color:var(--mute);background:#0b0e10;padding:8px;border-radius:6px;overflow-x:auto;max-height:200px}
+#intro{position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:var(--bg)}
+#intro .box{max-width:420px}
+#intro h1{font:700 44px/1.05 "Barlow Condensed";margin:0 0 10px;text-wrap:balance}
+#intro h1 span{display:inline-block;background:var(--sig);color:#111;padding:0 8px;transform:skew(-6deg)}
+#intro p{color:var(--mute);margin:0 0 18px}
+@media(max-width:380px){.split{grid-template-columns:minmax(0,1fr)}#radar{margin:auto}}
+@media(prefers-reduced-motion:no-preference){#cross circle{animation:p 2s ease-in-out infinite}@keyframes p{50%{opacity:.5}}}
+</style>
+</head>
+<body>
+<video id="vid" playsinline muted autoplay></video>
+<svg id="cross" viewBox="0 0 64 64" fill="none" stroke="#f5d000" stroke-width="2.5">
+  <circle cx="32" cy="32" r="14"/><path d="M32 2v16M32 46v16M2 32h16M46 32h16"/>
+</svg>
+<div id="chips">
+  <div class="chip">GPS <b id="cGps" class="bad">–</b></div>
+  <div class="chip">Richtung <b id="cHdg" class="bad">–</b></div>
+  <div class="chip">Neigung <b id="cPit">–</b></div>
+  <div class="chip">Kamera <b id="cCam" class="bad">–</b></div>
+  <div class="chip">BFE <b id="cApi" class="bad">–</b></div>
+</div>
+
+<div id="sheet">
+  <div class="row">
+    <button id="bId" disabled style="flex:1">Leitung bestimmen</button>
+    <button id="bRe" class="sec" title="Leitungen neu laden">Neu laden</button>
+  </div>
+  <div class="split">
+    <div id="best"><div class="empty">Phone hochkant halten, Kamera auf die Leitung richten, dann «Leitung bestimmen».</div></div>
+    <svg id="radar" viewBox="-100 -100 200 200" aria-label="Radar der Leitungen in der Umgebung, Norden oben"></svg>
+  </div>
+  <div id="alt" class="alt"></div>
+  <details>
+    <summary>Einstellungen &amp; Debug</summary>
+    <label>Suchradius <select id="rad"><option value="1000">1 km</option><option value="2000" selected>2 km</option><option value="3000">3 km</option></select></label>
+    <label><input type="checkbox" id="cab"> Erdkabel einbeziehen</label>
+    <label>Kompass-Korrektur <input type="range" id="off" min="-30" max="30" value="0"> <span id="offV">0°</span></label>
+    <label><input type="checkbox" id="man"> Manuell (ohne Sensoren)</label>
+    <div id="manBox" hidden>
+      <label>Lat <input type="number" id="mLat" step="0.0001" value="47.3780"></label>
+      <label>Lon <input type="number" id="mLon" step="0.0001" value="8.5400"></label>
+      <label>Richtung <input type="range" id="mHdg" min="0" max="359" value="90"> <span id="mHdgV">90°</span></label>
+    </div>
+    <pre id="dbg">–</pre>
+  </details>
+</div>
+
+<div id="intro"><div class="box">
+  <h1>Welche <span>Leitung</span> ist das?</h1>
+  <p>Richte die Kamera auf eine Hochspannungsleitung. Die App vergleicht GPS und Kompass mit den BFE-Daten (über 36 kV) und zeigt Trassee, Betreiber und Spannung.</p>
+  <button id="bStart" style="width:100%">Kamera, GPS &amp; Kompass starten</button>
+  <p style="font-size:13px;margin-top:14px">Daten: Bundesamt für Energie BFE, «Elektrische Anlagen mit einer Nennspannung von über 36 kV», via geo.admin.ch. Nicht vollständig, Angaben ohne Gewähr.</p>
+</div></div>
+
+<div id="err" hidden></div>
+<script>
+function showErr(m){const e=document.getElementById('err');e.hidden=false;e.textContent+=(e.textContent?'\n':'')+m}
+addEventListener('error',e=>showErr('Fehler: '+e.message));
+addEventListener('unhandledrejection',e=>showErr('Fehler: '+(e.reason&&e.reason.message||e.reason)));
+if(!window.isSecureContext)showErr('Seite läuft nicht über HTTPS – Kamera, GPS und Kompass sind gesperrt. Bitte über GitHub Pages öffnen.');
+{
+const $=id=>document.getElementById(id);
+const S={lat:null,lon:null,acc:null,hdg:null,pitch:null,src:'',raw:{},feats:[],fetchedAt:null,loading:false,last:null};
+const DECL=3; // magnetic declination CH ~ +3°
+const D2R=Math.PI/180,R2D=180/Math.PI;
+const norm=a=>((a%360)+360)%360, adiff=(a,b)=>Math.abs(((a-b+540)%360)-180);
+
+function set(id,txt,cls){const e=$(id);e.textContent=txt;e.className=cls||''}
+
+/* ---------- sensors ---------- */
+async function startCam(){
+  try{const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+    $('vid').srcObject=st;set('cCam','an','ok')}
+  catch(e){set('cCam','nein','bad');S.raw.cam=String(e)}
+}
+function startGps(){
+  if(!navigator.geolocation){set('cGps','fehlt','bad');return}
+  navigator.geolocation.watchPosition(p=>{
+    S.lat=p.coords.latitude;S.lon=p.coords.longitude;S.acc=p.coords.accuracy;
+    set('cGps','±'+Math.round(S.acc)+' m',S.acc<30?'ok':'warn');maybeFetch();ready();
+  },e=>{set('cGps','nein','bad');S.raw.gps=e.message},{enableHighAccuracy:true,maximumAge:2000});
+}
+let sx=0,sy=0,init=false;
+function onOri(ev){
+  const a=(ev.alpha||0)*D2R,b=(ev.beta||0)*D2R,g=(ev.gamma||0)*D2R;
+  const cA=Math.cos(a),sA=Math.sin(a),cB=Math.cos(b),sB=Math.sin(b),cG=Math.cos(g),sG=Math.sin(g);
+  // direction out of the back camera in earth frame (x=E,y=N,z=up)
+  const vx=-(cA*sG+sA*sB*cG), vy=-(sA*sG-cA*sB*cG), vz=-cB*cG;
+  S.pitch=Math.asin(Math.max(-1,Math.min(1,vz)))*R2D;
+  let h=null;
+  if(typeof ev.webkitCompassHeading==='number'){h=ev.webkitCompassHeading;S.src='iOS compass'}
+  else if(ev.absolute||ev.type==='deviceorientationabsolute'){h=norm(Math.atan2(vx,vy)*R2D);S.src='absolute'}
+  else{S.src='relativ (kein Kompass)'}
+  S.raw.ori={alpha:ev.alpha,beta:ev.beta,gamma:ev.gamma,webkit:ev.webkitCompassHeading,abs:ev.absolute};
+  if(h==null){set('cHdg','relativ','bad');return}
+  h=norm(h+DECL);
+  const k=init?0.25:1;init=true;
+  sx=sx+(Math.sin(h*D2R)-sx)*k;sy=sy+(Math.cos(h*D2R)-sy)*k;
+  S.hdg=norm(Math.atan2(sx,sy)*R2D);
+  set('cHdg',Math.round(heading())+'°','ok');
+  $('cPit').textContent=Math.round(S.pitch)+'°';ready();
+}
+async function startOri(){
+  try{if(typeof DeviceOrientationEvent!=='undefined'&&DeviceOrientationEvent.requestPermission){
+      const r=await DeviceOrientationEvent.requestPermission();if(r!=='granted'){set('cHdg','verweigert','bad');return}}
+  }catch(e){S.raw.oriErr=String(e)}
+  if('ondeviceorientationabsolute' in window)addEventListener('deviceorientationabsolute',onOri);
+  else addEventListener('deviceorientation',onOri);
+}
+const manual=()=>$('man').checked;
+const heading=()=>manual()?+$('mHdg').value:norm(S.hdg+ +$('off').value);
+const pos=()=>manual()?{lat:+$('mLat').value,lon:+$('mLon').value}:{lat:S.lat,lon:S.lon};
+function ready(){const p=pos();$('bId').disabled=!(p.lat!=null&&(manual()||S.hdg!=null)&&S.feats.length)}
+
+/* ---------- data ---------- */
+function lv95(E,N){const y=(E-2600000)/1e6,x=(N-1200000)/1e6;
+  const l=2.6779094+4.728982*y+0.791484*y*x+0.1306*y*x*x-0.0436*y*y*y;
+  const f=16.9023892+3.238272*x-0.270978*y*y-0.002528*x*x-0.0447*y*y*x-0.014*x*x*x;
+  return[l*100/36,f*100/36]}
+const toLL=c=>c[0]>1e5?lv95(c[0],c[1]):c;
+async function fetchLines(){
+  const p=pos();if(p.lat==null)return;
+  S.loading=true;set('cApi','lädt…','warn');
+  const r=+$('rad').value,dLat=r/110540,dLon=r/(111320*Math.cos(p.lat*D2R));
+  const bb=[p.lon-dLon,p.lat-dLat,p.lon+dLon,p.lat+dLat].map(v=>v.toFixed(5)).join(',');
+  const url='https://api3.geo.admin.ch/rest/services/api/MapServer/identify?geometryType=esriGeometryEnvelope&geometry='+bb+
+    '&sr=4326&layers=all:ch.bfe.elektrische-anlagen_ueber_36&tolerance=0&returnGeometry=true&geometryFormat=geojson&lang=de';
+  try{const res=await fetch(url);if(!res.ok)throw new Error('HTTP '+res.status);
+    const j=await res.json();
+    S.feats=(j.results||[]).filter(f=>f.geometry&&/LineString/.test(f.geometry.type)).map(f=>{
+      const pr=f.properties||f.attributes||{};
+      const parts=f.geometry.type==='LineString'?[f.geometry.coordinates]:f.geometry.coordinates;
+      return{id:f.id,p:pr,parts:parts.map(pt=>pt.map(toLL))}});
+    S.fetchedAt={...p};S.raw.api={total:(j.results||[]).length,lines:S.feats.length};
+    set('cApi',S.feats.length+' Leit.',S.feats.length?'ok':'warn');
+  }catch(e){set('cApi','Fehler','bad');S.raw.api=String(e)}
+  S.loading=false;ready();
+}
+function maybeFetch(){
+  if(S.loading)return;const p=pos();if(p.lat==null)return;
+  if(!S.fetchedAt||dist(S.fetchedAt,p)>300)fetchLines();
+}
+function dist(a,b){const e=(b.lon-a.lon)*111320*Math.cos(a.lat*D2R),n=(b.lat-a.lat)*110540;return Math.hypot(e,n)}
+
+/* ---------- matching ---------- */
+const kv=s=>{const m=/(\d+)\s*kV/i.exec(s||'');return m?+m[1]:null};
+const vcol=v=>v>=380?'var(--v380)':v>=220?'var(--v220)':v>=100?'var(--v110)':'var(--vlow)';
+const cross=(a,b)=>a[0]*b[1]-a[1]*b[0];
+function local(p,c){return[(c[0]-p.lon)*111320*Math.cos(p.lat*D2R),(c[1]-p.lat)*110540]}
+function identify(){
+  const p=pos(),h=heading(),d=[Math.sin(h*D2R),Math.cos(h*D2R)],cab=$('cab').checked;
+  const best=new Map();
+  for(const f of S.feats){
+    if(!cab&&/kabel/i.test(f.p.leitungtyp||''))continue;
+    for(const part of f.parts)for(let i=0;i<part.length-1;i++){
+      const A=local(p,part[i]),B=local(p,part[i+1]),r=[B[0]-A[0],B[1]-A[1]];
+      let off,dm;const den=cross(d,r);
+      if(Math.abs(den)>1e-9){const t=cross(A,r)/den,s=cross(A,d)/den;
+        if(t>0&&s>=0&&s<=1){off=0;dm=t}}
+      if(off==null){
+        const oa=adiff(norm(Math.atan2(A[0],A[1])*R2D),h),ob=adiff(norm(Math.atan2(B[0],B[1])*R2D),h);
+        if(oa<ob){off=oa;dm=Math.hypot(...A)}else{off=ob;dm=Math.hypot(...B)}}
+      if(off>20)continue;
+      const score=off+dm/100,key=f.p.fid||f.id,cur=best.get(key);
+      if(!cur||score<cur.score)best.set(key,{f,off,dm,score});
+    }
+  }
+  S.last=[...best.values()].sort((a,b)=>a.score-b.score).slice(0,5);
+  render();drawRadar();
+}
+function card(m,big){
+  const p=m.f.p,v=kv(p.spannung)||kv(p.spannungandere);
+  const exp=Math.atan(30/Math.max(m.dm,1))*R2D;
+  return`<div class="card" style="--c:${vcol(v||0)}">
+    <h2>${v?v+' kV':esc(p.spannung||'Spannung ?')}${big?'':' · '+Math.round(m.dm)+' m'}</h2>
+    <div class="t">${esc(p.bezeichnung||'Ohne Bezeichnung')}</div>
+    <div class="meta"><span>${esc(p.eigentuemer||'Betreiber ?')}</span><span>${esc(p.leitungtyp||'')}</span>
+    <span>${esc(p.stromnetztyp||'')}${p.frequenz?' '+esc(p.frequenz.replace(/^F/,'')):''}</span>
+    ${big?`<span>${Math.round(m.dm)} m entfernt</span><span>${m.off.toFixed(1)}° neben Ziel</span><span>Seile ca. ${Math.round(exp)}° über Horizont</span>`:''}
+    <span>${esc(p.fid||'')}</span></div></div>`}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function render(){
+  const L=S.last||[];
+  $('best').innerHTML=L.length?card(L[0],true):'<div class="empty">Keine Leitung in dieser Richtung (±20°). Langsam drehen oder Kompass kalibrieren (Achterbewegung).</div>';
+  $('alt').innerHTML=L.length>1?'<div class="empty">Weitere Kandidaten</div>'+L.slice(1).map(m=>card(m,false)).join(''):'';
+}
+
+/* ---------- radar ---------- */
+function drawRadar(){
+  const p=pos();if(p.lat==null)return;
+  const r=+$('rad').value,k=95/r,h=heading(),cab=$('cab').checked,bestId=S.last&&S.last[0]&&(S.last[0].f.p.fid||S.last[0].f.id);
+  let s='<circle r="95" fill="none" stroke="#2a3238"/><circle r="47" fill="none" stroke="#1d2428"/>';
+  if(h!=null&&!isNaN(h)){const w=20*D2R,a=h*D2R,x1=Math.sin(a-w)*95,y1=-Math.cos(a-w)*95,x2=Math.sin(a+w)*95,y2=-Math.cos(a+w)*95;
+    s+=`<path d="M0 0L${x1} ${y1}A95 95 0 0 1 ${x2} ${y2}Z" fill="rgba(245,208,0,.14)"/><line x2="${Math.sin(a)*95}" y2="${-Math.cos(a)*95}" stroke="#f5d000" stroke-width="1.5"/>`}
+  for(const f of S.feats){
+    const isC=/kabel/i.test(f.p.leitungtyp||'');if(isC&&!cab)continue;
+    const hi=(f.p.fid||f.id)===bestId,v=kv(f.p.spannung)||0;
+    for(const part of f.parts){
+      const pts=part.map(c=>{const l=local(p,c);return(l[0]*k).toFixed(1)+','+(-l[1]*k).toFixed(1)}).join(' ');
+      s+=`<polyline points="${pts}" fill="none" stroke="${vcol(v)}" stroke-width="${hi?3.5:1.4}" opacity="${hi?1:.6}"${isC?' stroke-dasharray="3 3"':''}/>`}
+  }
+  s+='<circle r="4" fill="#fff"/><text y="-82" text-anchor="middle" fill="#9aa3a8" font-size="13" font-family="Barlow">N</text>';
+  $('radar').innerHTML=s;
+}
+
+/* ---------- wiring ---------- */
+$('bStart').onclick=()=>{
+  $('intro').hidden=true;
+  if(!navigator.mediaDevices||!navigator.geolocation)showErr('Browser blockiert Sensoren (In-App-Vorschau?). Seite in Safari/Chrome über HTTPS öffnen.');
+  startOri();startCam();startGps()};
+$('bId').onclick=identify;
+$('bRe').onclick=()=>{S.fetchedAt=null;fetchLines()};
+$('rad').onchange=()=>{S.fetchedAt=null;fetchLines()};
+$('off').oninput=e=>$('offV').textContent=e.target.value+'°';
+$('man').onchange=e=>{$('manBox').hidden=!e.target.checked;S.fetchedAt=null;fetchLines()};
+$('mHdg').oninput=e=>{$('mHdgV').textContent=e.target.value+'°';ready()};
+['mLat','mLon'].forEach(id=>$(id).onchange=()=>{S.fetchedAt=null;fetchLines()});
+let t=0;(function loop(ts){
+  if(ts-t>250){t=ts;drawRadar();
+    $('dbg').textContent=JSON.stringify({pos:pos(),acc:S.acc,heading:heading(),pitch:S.pitch,source:S.src,decl:DECL,raw:S.raw,
+      best:(S.last||[]).map(m=>({fid:m.f.p.fid,off:+m.off.toFixed(1),dist:Math.round(m.dm)}))},null,1)}
+  requestAnimationFrame(loop)})(0);
+}
+</script>
+</body>
+</html>
