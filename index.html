@@ -35,7 +35,13 @@ button:disabled{opacity:.45}
 .card h2{margin:0;font:700 28px/1.05 "Barlow Condensed"}
 .card .t{font-size:15px;margin-top:2px;overflow-wrap:anywhere}
 .meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--mute);margin-top:6px}
-.meta span{white-space:nowrap}
+.meta span{overflow-wrap:anywhere}.meta .n{white-space:nowrap}
+.meta .id{display:block;width:100%;font-size:11px;opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.links{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.links a{display:inline-flex;align-items:center;min-height:36px;padding:0 10px;border-radius:6px;background:#273036;color:var(--ink);font-size:14px;font-weight:600;text-decoration:none}
+.links a:focus-visible,.alt .card:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.hint{font-size:13px;color:var(--sig);margin-top:6px}
+.alt .card{cursor:pointer}.alt .card:active{background:#1d252a}
 .alt .card{padding:8px 10px}.alt .card h2{font-size:20px}
 .empty{color:var(--mute);font-size:15px;padding:6px 0}
 .split{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:12px;margin-top:10px}
@@ -51,7 +57,8 @@ pre{white-space:pre-wrap;font-size:12px;color:var(--mute);background:#0b0e10;pad
 #intro h1{font:700 44px/1.05 "Barlow Condensed";margin:0 0 10px;text-wrap:balance}
 #intro h1 span{display:inline-block;background:var(--sig);color:#111;padding:0 8px;transform:skew(-6deg)}
 #intro p{color:var(--mute);margin:0 0 18px}
-@media(max-width:380px){.split{grid-template-columns:minmax(0,1fr)}#radar{margin:auto}}
+@media(max-width:480px){.split{grid-template-columns:minmax(0,1fr) 112px}#radar{width:112px;height:112px}}
+@media(max-width:340px){.split{grid-template-columns:minmax(0,1fr)}#radar{margin:auto}}
 @media(prefers-reduced-motion:no-preference){#cross circle{animation:p 2s ease-in-out infinite}@keyframes p{50%{opacity:.5}}}
 </style>
 </head>
@@ -202,41 +209,58 @@ function identify(){
     if(!cab&&/kabel/i.test(f.p.leitungtyp||''))continue;
     for(const part of f.parts)for(let i=0;i<part.length-1;i++){
       const A=local(p,part[i]),B=local(p,part[i+1]),r=[B[0]-A[0],B[1]-A[1]];
-      let off,dm;const den=cross(d,r);
+      let off,dm,pe;const den=cross(d,r);
       if(Math.abs(den)>1e-9){const t=cross(A,r)/den,s=cross(A,d)/den;
-        if(t>0&&s>=0&&s<=1){off=0;dm=t}}
+        if(t>0&&s>=0&&s<=1){off=0;dm=t;pe=[d[0]*t,d[1]*t]}}
       if(off==null){
         const oa=adiff(norm(Math.atan2(A[0],A[1])*R2D),h),ob=adiff(norm(Math.atan2(B[0],B[1])*R2D),h);
-        if(oa<ob){off=oa;dm=Math.hypot(...A)}else{off=ob;dm=Math.hypot(...B)}}
+        if(oa<ob){off=oa;dm=Math.hypot(...A);pe=A}else{off=ob;dm=Math.hypot(...B);pe=B}}
       if(off>20)continue;
       const score=off+dm/100,key=f.p.fid||f.id,cur=best.get(key);
-      if(!cur||score<cur.score)best.set(key,{f,off,dm,score});
+      if(!cur||score<cur.score)best.set(key,{f,off,dm,score,ll:[p.lon+pe[0]/(111320*Math.cos(p.lat*D2R)),p.lat+pe[1]/110540]});
     }
   }
-  S.last=[...best.values()].sort((a,b)=>a.score-b.score).slice(0,5);
+  S.last=[...best.values()].sort((a,b)=>a.score-b.score).slice(0,5);S.sel=0;
   render();drawRadar();
 }
-function card(m,big){
+const OPS=[[/swissgrid/i,'https://www.swissgrid.ch'],[/axpo/i,'https://www.axpo.com'],[/\bbkw\b/i,'https://www.bkw.ch'],
+ [/\bckw\b/i,'https://www.ckw.ch'],[/\bewz\b/i,'https://www.ewz.ch'],[/\bsbb\b/i,'https://www.sbb.ch'],[/alpiq/i,'https://www.alpiq.com'],
+ [/repower/i,'https://www.repower.com'],[/\bekz\b/i,'https://www.ekz.ch'],[/\baew\b/i,'https://www.aew.ch'],[/groupe\s*e\b/i,'https://www.groupe-e.ch'],
+ [/romande/i,'https://www.romande-energie.ch'],[/\bsig\b/i,'https://www.sig-ge.ch'],[/\baet\b|ticinese/i,'https://www.aet.ch'],[/\biwb\b/i,'https://www.iwb.ch']];
+function lv95of(lon,lat){const f=(lat*3600-169028.66)/1e4,l=(lon*3600-26782.5)/1e4;
+  return[2600072.37+211455.93*l-10938.51*l*f-0.36*l*f*f-44.54*l*l*l,1200147.07+308807.95*f+3745.25*l*l+76.63*f*f-194.56*l*l*f+119.79*f*f*f]}
+function links(m){
+  const p=m.f.p,[E,N]=lv95of(m.ll[0],m.ll[1]),L='ch.bfe.elektrische-anlagen_ueber_36';
+  const map=`https://map.geo.admin.ch/?lang=de&topic=energie&E=${Math.round(E)}&N=${Math.round(N)}&zoom=10&layers=${L}&${L}=${encodeURIComponent(m.f.id)}`;
+  const op=p.eigentuemer||'',hit=OPS.find(o=>o[0].test(op));
+  const opUrl=hit?hit[1]:'https://duckduckgo.com/?q='+encodeURIComponent(op+' Stromnetz');
+  return`<div class="links"><a href="${map}" target="_blank" rel="noopener">Auf Karte zeigen</a>${op?`<a href="${opUrl}" target="_blank" rel="noopener">${esc(op.length>22?op.slice(0,20)+'…':op)}</a>`:''}</div>
+  ${/swissgrid/i.test(op)?'<div class="hint">Swissgrid-Mast in der Nähe? QR-Code auf dem Mastschild scannen: Mastnummer, Höhe, Baujahr.</div>':''}`}
+function card(m,big,i){
   const p=m.f.p,v=kv(p.spannung)||kv(p.spannungandere);
   const exp=Math.atan(30/Math.max(m.dm,1))*R2D;
-  return`<div class="card" style="--c:${vcol(v||0)}">
+  return`<div class="card" style="--c:${vcol(v||0)}"${big?'':` role="button" tabindex="0" data-i="${i}"`}>
     <h2>${v?v+' kV':esc(p.spannung||'Spannung ?')}${big?'':' · '+Math.round(m.dm)+' m'}</h2>
     <div class="t">${esc(p.bezeichnung||'Ohne Bezeichnung')}</div>
-    <div class="meta"><span>${esc(p.eigentuemer||'Betreiber ?')}</span><span>${esc(p.leitungtyp||'')}</span>
-    <span>${esc(p.stromnetztyp||'')}${p.frequenz?' '+esc(p.frequenz.replace(/^F/,'')):''}</span>
-    ${big?`<span>${Math.round(m.dm)} m entfernt</span><span>${m.off.toFixed(1)}° neben Ziel</span><span>Seile ca. ${Math.round(exp)}° über Horizont</span>`:''}
-    <span>${esc(p.fid||'')}</span></div></div>`}
+    <div class="meta"><span>${esc(p.eigentuemer||'Betreiber ?')}</span><span class="n">${esc(p.leitungtyp||'')}</span>
+    <span class="n">${esc(p.stromnetztyp||'')}${p.frequenz?' '+esc(p.frequenz.replace(/^F/,'')):''}</span>
+    ${big?`<span class="n">${Math.round(m.dm)} m entfernt</span><span class="n">${m.off.toFixed(1)}° neben Ziel</span><span class="n">Seile ca. ${Math.round(exp)}° über Horizont</span>
+    <span class="id" title="${esc(p.fid||'')}">BFE-ID ${esc(p.fid||'–')}</span>`:''}</div>
+    ${big?links(m):''}</div>`}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function render(){
-  const L=S.last||[];
-  $('best').innerHTML=L.length?card(L[0],true):'<div class="empty">Keine Leitung in dieser Richtung (±20°). Langsam drehen oder Kompass kalibrieren (Achterbewegung).</div>';
-  $('alt').innerHTML=L.length>1?'<div class="empty">Weitere Kandidaten</div>'+L.slice(1).map(m=>card(m,false)).join(''):'';
+  const L=S.last||[],sel=S.sel||0;
+  $('best').innerHTML=L.length?card(L[sel],true):'<div class="empty">Keine Leitung in dieser Richtung (±20°). Langsam drehen oder Kompass kalibrieren (Achterbewegung).</div>';
+  const rest=L.map((m,i)=>[m,i]).filter(x=>x[1]!==sel);
+  $('alt').innerHTML=rest.length?'<div class="empty">Weitere Kandidaten – antippen zum Anzeigen</div>'+rest.map(([m,i])=>card(m,false,i)).join(''):'';
 }
+function pick(e){const c=e.target.closest('[data-i]');if(!c)return;S.sel=+c.dataset.i;render();drawRadar();$('sheet').scrollTop=0}
+
 
 /* ---------- radar ---------- */
 function drawRadar(){
   const p=pos();if(p.lat==null)return;
-  const r=+$('rad').value,k=95/r,h=heading(),cab=$('cab').checked,bestId=S.last&&S.last[0]&&(S.last[0].f.p.fid||S.last[0].f.id);
+  const r=+$('rad').value,k=95/r,h=heading(),cab=$('cab').checked,sm=S.last&&S.last[S.sel||0],bestId=sm&&(sm.f.p.fid||sm.f.id);
   let s='<circle r="95" fill="none" stroke="#2a3238"/><circle r="47" fill="none" stroke="#1d2428"/>';
   if(h!=null&&!isNaN(h)){const w=20*D2R,a=h*D2R,x1=Math.sin(a-w)*95,y1=-Math.cos(a-w)*95,x2=Math.sin(a+w)*95,y2=-Math.cos(a+w)*95;
     s+=`<path d="M0 0L${x1} ${y1}A95 95 0 0 1 ${x2} ${y2}Z" fill="rgba(245,208,0,.14)"/><line x2="${Math.sin(a)*95}" y2="${-Math.cos(a)*95}" stroke="#f5d000" stroke-width="1.5"/>`}
@@ -257,6 +281,8 @@ $('bStart').onclick=()=>{
   if(!navigator.mediaDevices||!navigator.geolocation)showErr('Browser blockiert Sensoren (In-App-Vorschau?). Seite in Safari/Chrome über HTTPS öffnen.');
   startOri();startCam();startGps()};
 $('bId').onclick=identify;
+$('alt').onclick=pick;
+$('alt').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(e)}};
 $('bRe').onclick=()=>{S.fetchedAt=null;fetchLines()};
 $('rad').onchange=()=>{S.fetchedAt=null;fetchLines()};
 $('off').oninput=e=>$('offV').textContent=e.target.value+'°';
